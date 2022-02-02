@@ -433,6 +433,7 @@ export type TokenMetadata = {
 export type LaunchTokenOpts = {
   'decimals'?: number,
   'supply'?: unknown,
+  'clawback'?: any, // Account
 };
 
 export type IAccount<NetworkAccount, Backend, Contract, ContractInfo, Token> = {

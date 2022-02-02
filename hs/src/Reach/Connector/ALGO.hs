@@ -1623,6 +1623,7 @@ ce = \case
           cContractAddr
           ca tok
           code "asset_holding_get" [ "AssetBalance" ]
+          op "pop"
           -- [ bal ]
           ca tb
           -- [ bal, rsh_bal ]

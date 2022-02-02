@@ -1692,7 +1692,7 @@ export const connectAccount = async (networkAccount: NetworkAccount): Promise<Ac
         const bal = await balanceOf({ addr: ctcAddr }, mtok);
         // XXX May be wrong sometimes. Accurate minimumBalance requires this change:
         //     https://github.com/algorand/go-algorand/pull/3287
-        const result = bal.eq(0) ? bal : bal.sub(minimumBalance);
+        const result = bal.lt(minimumBalance) ? bigNumberify(0) : bal.sub(minimumBalance);
         debug(`Balance of contract:`, result);
         return result;
       }
@@ -2212,11 +2212,12 @@ export async function launchToken (accCreator:Account, name:string, sym:string, 
   };
   const supply = opts.supply ? bigNumberify(opts.supply) : bigNumberify(2).pow(64).sub(1);
   const decimals = opts.decimals !== undefined ? opts.decimals : 6;
+  const clawback = opts.clawback !== undefined ? addr(opts.clawback) : zaddr;
   const ctxn_p = await dotxn(
     (params:TxnParams) =>
     algosdk.makeAssetCreateTxnWithSuggestedParams(
       caddr, undefined, bigNumberToBigInt(supply), decimals,
-      false, zaddr, zaddr, zaddr, zaddr,
+      false, zaddr, zaddr, zaddr, clawback,
       sym, name, '', '', params,
     ));
   const idn = ctxn_p['created-asset-index'];
