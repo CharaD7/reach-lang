@@ -166,6 +166,9 @@ export const Array_indexOf =
 export const Array_indexOf1 =
   (arr) => (x) => Array_indexOf(arr, x);
 
+export const Array_set =
+  (x, y, z) => Array.set(x, y, z)
+
 export const Array_findIndex =
   (arr, f) => Array_indexOfAux(arr, f);
 export const Array_findIndex1 =

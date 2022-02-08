@@ -506,6 +506,7 @@ parseVal env t v = do
                 Nothing -> impossible $ "parseType: Data: Constructor type"
               return $ SMV_Data c [v']
             _ -> impossible $ "parseVal: Data " <> show v
+        T_TokenBalances {} -> impossible "parseVal: T_TokenBalances"
       where
         parseArray env' ty = \case
           List [Atom "store", arr, _, el] -> do
@@ -711,6 +712,12 @@ pathAddUnbound at_dv (Just dv) msmte = do
   let smlet = Just . SMTLet at_dv dv (DLV_Let DVC_Once dv) Witness =<< msmte
   pathAddUnbound_v v t smlet
 
+assertInvariants :: SrcLoc -> DLType -> String -> App ()
+assertInvariants at_dv t v =
+  when (t == T_UInt) $ do
+        rhs <- smt_c at_dv DLC_UInt_max
+        smtAssert (smtApply "<=" [Atom v, rhs])
+
 pathAddBound :: SrcLoc -> Maybe DLVar -> Maybe SMTExpr -> SExpr -> SMTCat -> App ()
 pathAddBound _ Nothing _ _ _ = mempty
 pathAddBound at_dv (Just dv) de se sc = do
@@ -718,6 +725,7 @@ pathAddBound at_dv (Just dv) de se sc = do
   v <- smtVar dv
   let smlet = Just . SMTLet at_dv dv (DLV_Let DVC_Once dv) sc =<< de
   smtDeclare_v v t smlet
+  assertInvariants at_dv t v
   --- Note: We don't use smtAssertCtxt because variables are global, so
   --- this variable isn't affected by the path.
   smtAssert $ smtEq (Atom v) se
@@ -957,7 +965,6 @@ smt_v _at_de dv = Atom <$> smtVar dv
 smt_a :: SrcLoc -> DLArg -> App SExpr
 smt_a at_de = \case
   DLA_Var dv -> smt_v at_de dv
-  DLA_Tok (DLToken dv _) -> smt_v at_de dv
   DLA_Constant c -> do
     smt_con <- ctxt_smt_con <$> ask
     return $ smt_con at_de c
@@ -1104,6 +1111,7 @@ smt_e at_dv mdv de = do
       let nonep = List [Atom noneCtor, nonev]
       let nonec = List [nonep, da']
       bound at $ smtApply "match" [mo', List [nonec, somec]]
+    DLE_BalanceInit {} -> impossible "smt_e: DLE_BalanceInit"
   where
     bound at se = pathAddBound at mdv (Just $ SMTProgram de) se Context
     unbound at = pathAddUnbound at mdv (Just $ SMTProgram de)
@@ -1247,9 +1255,7 @@ smt_asn_def at asn = mapM_ def1 $ M.keys asnm
     DLAssignment asnm = asn
     def1 dv = do
       pathAddUnbound at (Just dv) (Just $ SMTModel O_Assignment)
-      when (varType dv == T_UInt) $ do
-        rhs <- smt_c at DLC_UInt_max
-        smtAssert (smtApply "<=" [Atom $ getVarName dv, rhs])
+      assertInvariants at (varType dv) (getVarName dv)
 
 smt_alloc_id :: App Int
 smt_alloc_id = do
@@ -1510,6 +1516,7 @@ _smtDefineTypes smt ts = do
                   let invarg ((argn, _), arg_inv) = arg_inv $ smtApply argn [se]
                   smtAndAll $ map invarg args
             return inv
+          T_TokenBalances {} -> impossible "_smtDefineTypes: T_TokenBalances"
       type_name :: DLType -> IO (String, SMTTypeInv)
       type_name t = do
         tm <- readIORef tmr
