@@ -11,12 +11,14 @@ ARGS+=( "--build-arg" "REACH_GIT_HASH=$("${HERE}"/git-hash.sh)" )
 # shellcheck source=/dev/null
 . "${HERE}"/../DEPS
 ARGS+=( "--build-arg" "SOLC_VERSION=${SOLC_VERSION}" )
+ARGS+=( "--build-arg" "SOLC_VERSION=${SOLC_IMAGE}" )
 ARGS+=( "--build-arg" "ALPINE_VERSION=${ALPINE_VERSION}" )
 ARGS+=( "--build-arg" "NODE_VERSION=${NODE_VERSION}" )
+ARGS+=( "--build-arg" "NODE_VERSION=${NODE_IMAGE}" )
 ARGS+=( "--build-arg" "REACH_VERSION=${VERSION}" )
 ARGS+=( "--build-arg" "Z3_VERSION=${Z3_VERSION}" )
 
-LAYERS=$(grep -E 'FROM .* as' "${FILE}" | grep -v ignore | awk -F' as ' '{print $2}')
+LAYERS=$(grep -E 'FROM .* (as|AS)' $FILE | grep -v ignore | awk -F ' (as|AS) ' '{print $2}')
 
 if [ "${CIRCLE_BRANCH}" = "" ] ; then
   CIRCLE_BRANCH=master
