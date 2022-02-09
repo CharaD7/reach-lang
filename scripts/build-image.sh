@@ -18,7 +18,7 @@ ARGS+=( "--build-arg" "NODE_IMAGE=${NODE_IMAGE}" )
 ARGS+=( "--build-arg" "REACH_VERSION=${VERSION}" )
 ARGS+=( "--build-arg" "Z3_VERSION=${Z3_VERSION}" )
 
-LAYERS=$(grep -E 'FROM .* (as|AS)' $FILE | grep -v ignore | awk -F ' (as|AS) ' '{print $2}')
+LAYERS=$(grep -E 'FROM .* (as|AS)' "${FILE}" | grep -v ignore | awk -F ' (as|AS) ' '{print $2}')
 
 if [ "${CIRCLE_BRANCH}" = "" ] ; then
   CIRCLE_BRANCH=master
