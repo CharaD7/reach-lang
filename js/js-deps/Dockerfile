@@ -1,6 +1,5 @@
-ARG NODE_IMAGE
-
 # hadolint ignore=DL3006
+ARG NODE_IMAGE
 FROM $NODE_IMAGE
 
 RUN apk update && apk add git make python3 libc-dev gcc g++

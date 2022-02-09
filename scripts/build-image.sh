@@ -14,7 +14,7 @@ ARGS+=( "--build-arg" "SOLC_VERSION=${SOLC_VERSION}" )
 ARGS+=( "--build-arg" "SOLC_IMAGE=${SOLC_IMAGE}" )
 ARGS+=( "--build-arg" "ALPINE_VERSION=${ALPINE_VERSION}" )
 ARGS+=( "--build-arg" "NODE_VERSION=${NODE_VERSION}" )
-ARGS+=( "--build-arg" "NODE_VERSION=${NODE_IMAGE}" )
+ARGS+=( "--build-arg" "NODE_IMAGE=${NODE_IMAGE}" )
 ARGS+=( "--build-arg" "REACH_VERSION=${VERSION}" )
 ARGS+=( "--build-arg" "Z3_VERSION=${Z3_VERSION}" )
 
