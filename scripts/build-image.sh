@@ -11,7 +11,7 @@ ARGS+=( "--build-arg" "REACH_GIT_HASH=$("${HERE}"/git-hash.sh)" )
 # shellcheck source=/dev/null
 . "${HERE}"/../DEPS
 ARGS+=( "--build-arg" "SOLC_VERSION=${SOLC_VERSION}" )
-ARGS+=( "--build-arg" "SOLC_VERSION=${SOLC_IMAGE}" )
+ARGS+=( "--build-arg" "SOLC_IMAGE=${SOLC_IMAGE}" )
 ARGS+=( "--build-arg" "ALPINE_VERSION=${ALPINE_VERSION}" )
 ARGS+=( "--build-arg" "NODE_VERSION=${NODE_VERSION}" )
 ARGS+=( "--build-arg" "NODE_VERSION=${NODE_IMAGE}" )
