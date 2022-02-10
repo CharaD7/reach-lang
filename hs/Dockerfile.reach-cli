@@ -1,6 +1,6 @@
+ARG ALPINE_IMAGE
 FROM reachsh/haskell-build-artifacts:latest as build
 
-ARG ALPINE_IMAGE
 FROM $ALPINE_IMAGE
 
 RUN apk update && apk add libc6-compat gmp-dev
