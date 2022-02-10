@@ -69,37 +69,47 @@ instance Show AlgoError where
 
 -- General tools that could be elsewhere
 
-type LPGraph a = M.Map a (M.Map a Integer)
+type LPGraph1 a = M.Map a Integer
+type LPGraph a = M.Map a (LPGraph1 a)
 
-type LPPath a = (DotGraph, [(a, Integer)], Integer)
-
-type LPInt a = M.Map a ([(a, Integer)], Integer)
+type LPPath a = (DotGraph, [a], Integer)
 
 longestPathBetween :: LPGraph String -> String -> String -> IO (LPPath String)
-longestPathBetween g f _d = do
-  let r x y = fromMaybe ([], 0) $ M.lookup x y
-  ps <- fixedPoint $ \_ (m :: LPInt a) -> do
-    flip mapWithKeyM g $ \n cs -> do
-      cs' <- flip mapM (M.toAscList cs) $ \(t, c) -> do
-        let (p, pc) = r t m
-        let p' = (t, c) : p
-        let c' = pc + c
-        case n `elem` map fst p' of
-          True -> return (p, -1)
-          False -> return (p', c')
-      return $ List.maximumBy (compare `on` snd) cs'
-  let (p, pc) = r f ps
+longestPathBetween g f d = do
+  a2d <- fixedPoint $ \_ (i :: LPGraph1 String) -> do
+    flip mapM g $ \tom -> do
+      let ext to c =
+            case to == d of
+              True -> c
+              False ->
+                case M.lookup to i of
+                  Nothing -> 0
+                  Just c' -> c + c'
+      let tom' = map (uncurry ext) $ M.toAscList tom
+      return $ foldl' max 0 tom'
+  let r2d x = fromMaybe 0 $ M.lookup x a2d
+  let pc = r2d f
+  let getMaxPath' x =
+        case x == d of
+          True -> []
+          False -> getMaxPath $ List.maximumBy (compare `on` r2d) $ M.keys $ fromMaybe mempty $ M.lookup x g
+      getMaxPath x = x : getMaxPath' x
+  let p = getMaxPath f
   let mkEdges s from = \case
         [] -> s
-        (to, _) : m -> mkEdges (S.insert (from, to) s) to m
-  let edges = mkEdges mempty f p
+        to : m -> mkEdges (S.insert (from, to) s) to m
+  let edges =
+        case p of
+          [] -> mempty
+          x : y -> mkEdges mempty x y
   let edge = flip S.member edges
   let gs :: DotGraph =
         flip concatMap (M.toAscList g) $ \(from, cs) ->
           flip concatMap (M.toAscList cs) $ \(to, c) ->
+            let tc = r2d to in
             case (from == mempty) of
               True -> []
-              False -> [(from, to, (M.fromList $ [("label", show c)] <> (if edge (from, to) then [("color","red")] else [])))]
+              False -> [(from, to, (M.fromList $ [("label", show c <> "+" <> show tc <> "=" <> show (c + tc))] <> (if edge (from, to) then [("color","red")] else [])))]
   return $ (gs, p, pc)
 
 aarray :: [Aeson.Value] -> Aeson.Value
@@ -252,6 +262,7 @@ data IndentDir
 
 data TEAL
   = TCode TealOp [TealArg]
+  | Titob Bool
   | TInt Integer
   | TConst LT.Text
   | TBytes B.ByteString
@@ -259,6 +270,7 @@ data TEAL
   | TSubstring Word8 Word8
   | TComment IndentDir LT.Text
   | TLabel Label
+  | TFor_top Integer
   | TFor_bnz Label Integer Label
   | TLog Integer
   | TStore ScratchSlot LT.Text
@@ -269,7 +281,7 @@ type TEALt = [LT.Text]
 type TEALs = DL.DList TEAL
 
 builtin :: S.Set TealOp
-builtin = S.fromList ["byte", "int", "substring", "extract", "log", "store", "load"]
+builtin = S.fromList ["byte", "int", "substring", "extract", "log", "store", "load", "itob"]
 
 render :: IORef Int -> TEAL -> IO TEALt
 render ilvlr = \case
@@ -278,6 +290,7 @@ render ilvlr = \case
   TBytes bs -> r ["byte", "base64(" <> encodeBase64 bs <> ")"]
   TExtract x y -> r ["extract", texty x, texty y]
   TSubstring x y -> r ["substring", texty x, texty y]
+  Titob _ -> r ["itob"]
   TCode f args ->
     case S.member f builtin of
       True -> impossible $ show $ "cannot use " <> f <> " directly"
@@ -291,6 +304,8 @@ render ilvlr = \case
       "" -> return []
       _ -> r ["//", t]
   TLabel lab -> r [lab <> ":"]
+  TFor_top maxi ->
+    r [("// for runs " <> texty maxi <> " times")]
   TFor_bnz top_lab maxi _ ->
     r ["bnz", top_lab, ("// for runs " <> texty maxi <> " times")]
   TLog sz ->
@@ -336,9 +351,12 @@ opt_b1 = \case
   (TBytes x) : (TBytes y) : (TCode "concat" []) : l ->
     opt_b1 $ (TBytes $ x <> y) : l
   (TCode "b" [x]) : b@(TLabel y) : l | x == y -> b : l
-  (TCode "btoi" []) : (TCode "itob" ["// bool"]) : (TSubstring 7 8) : l -> l
-  (TCode "btoi" []) : (TCode "itob" []) : l -> l
-  (TCode "itob" []) : (TCode "btoi" []) : l -> l
+  (TCode "btoi" []) : (Titob True) : (TSubstring 7 8) : l -> l
+  (TCode "btoi" []) : (Titob _) : l -> l
+  (Titob _) : (TCode "btoi" []) : l -> l
+  (TCode "==" []) : (TCode "!" []) : l -> (TCode "!=" []) : l
+  (TInt 0) : (TCode "!=" []) : (TCode "assert" []) : l ->
+    (TCode "assert" []) : l
   (TExtract x 8) : (TCode "btoi" []) : l ->
     (TInt $ fromIntegral x) : (TCode "extract_uint64" []) : l
   a@(TLoad x _) : (TLoad y _) : l
@@ -367,7 +385,7 @@ opt_b1 = \case
       s2n = s0n + (fromIntegral s1w)
       e2n :: Integer
       e2n = s0n + (fromIntegral e1w)
-  (TInt x) : (TCode "itob" []) : l ->
+  (TInt x) : (Titob _) : l ->
     opt_b1 $ (TBytes $ itob x) : l
   (TBytes xbs) : (TCode "btoi" []) : l ->
     opt_b1 $ (TInt $ btoi xbs) : l
@@ -404,18 +422,22 @@ checkCost warning disp alwaysShow ts = do
   let lTop = "TOP"
   let lBot = "BOT"
   (labr :: IORef String) <- newIORef $ lTop
+  (k_r :: IORef Integer) <- newIORef $ 1
   (cost_r :: IORef Integer) <- newIORef $ 0
   (logLen_r :: IORef Integer) <- newIORef $ 0
+  let modK = modifyIORef k_r
   let l2s = LT.unpack
-  let rec_ r c = modifyIORef r (c +)
+  let rec_ r c = do
+        k <- readIORef k_r
+        modifyIORef r ((k * c) +)
   let recCost = rec_ cost_r
   let recLogLen = rec_ logLen_r
-  let jump_ :: String -> Integer -> IO ()
-      jump_ t k = do
+  let jump_ :: String -> IO ()
+      jump_ t = do
         lab <- readIORef labr
         let updateGraph cr cgr = do
               c <- readIORef cr
-              let ff = max (c * k)
+              let ff = max c
               let fg = Just . ff . fromMaybe 0
               let f = M.alter fg t
               let g = Just . f . fromMaybe mempty
@@ -426,10 +448,14 @@ checkCost warning disp alwaysShow ts = do
         writeIORef labr t
         writeIORef cost_r 0
         writeIORef logLen_r 0
-  let jumpK k t = recCost 1 >> jump_ (l2s t) k
-  let jump = jumpK 1
+  let jump t = recCost 1 >> jump_ (l2s t)
   forM_ ts $ \case
-    TFor_bnz _ cnt lab' -> jumpK cnt lab'
+    TFor_top cnt -> do
+      modK (\x -> x * cnt)
+    TFor_bnz _ cnt lab' -> do
+      recCost 1
+      modK (\x -> x `div` cnt)
+      jump lab'
     TCode "bnz" [lab'] -> jump lab'
     TCode "bz" [lab'] -> jump lab'
     TCode "b" [lab'] -> do
@@ -447,7 +473,7 @@ checkCost warning disp alwaysShow ts = do
     TComment {} -> return ()
     TLabel lab' -> do
       let lab'' = l2s lab'
-      jump_ lab'' 1
+      jump_ lab''
       switch lab''
     TBytes _ -> recCost 1
     TConst _ -> recCost 1
@@ -456,6 +482,7 @@ checkCost warning disp alwaysShow ts = do
     TInt _ -> recCost 1
     TExtract {} -> recCost 1
     TSubstring {} -> recCost 1
+    Titob {} -> recCost 1
     TCode f _ ->
       case f of
         "sha256" -> recCost 35
@@ -478,11 +505,10 @@ checkCost warning disp alwaysShow ts = do
         "b^" -> recCost 6
         "b~" -> recCost 4
         _ -> recCost 1
-  let showNice x = lTop <> h x
-        where
-          h = \case
-            [] -> ""
-            (l, c) : r -> " --" <> show c <> "--> " <> l <> h r
+  let showNice = \case
+        [] -> ""
+        [l] -> l
+        l : r -> l <> " --> " <> showNice r
   let analyze lab cgr units algoMax = do
         cg <- readIORef cgr
         (gs, p, c) <- longestPathBetween cg lTop (l2s lBot)
@@ -845,8 +871,8 @@ sallocVarLet (DLVarLet mvc dv) sm cgen km = do
 
 ctobs :: DLType -> App ()
 ctobs = \case
-  T_UInt -> op "itob"
-  T_Bool -> code "itob" ["// bool"] >> output (TSubstring 7 8)
+  T_UInt -> output (Titob False)
+  T_Bool -> output (Titob True) >> output (TSubstring 7 8)
   T_Null -> nop
   T_Bytes _ -> nop
   T_Digest -> nop
@@ -1169,6 +1195,7 @@ cfor maxi body = do
       cint 0
       store_idx
       label top_lab
+      output $ TFor_top maxi
       body load_idx
       load_idx
       cint 1
@@ -1598,13 +1625,13 @@ ce = \case
       L_Internal -> void $ internal
       L_Api {} -> do
         v <- internal
-        op "dup"
+        --op "dup" -- API log values are never used
         ctobs $ varType v
         gvStore GV_apiRet
       L_Event ml en -> do
         let name = maybe en (\l -> bunpack l <> "_" <> en) ml
         clogEvent name vs
-        cl DLL_Null
+        --cl DLL_Null -- Event log values are never used
   DLE_setApiDetails {} -> return ()
   DLE_GetUntrackedFunds _ mtok tb -> do
     after_lab <- freshLabel "getActualBalance"
@@ -1851,21 +1878,34 @@ cextractDataOf cd va = do
 
 doSwitch :: String -> (a -> App ()) -> SrcLoc -> DLVar -> SwitchCases a -> App ()
 doSwitch lab ck _at dv csm = do
-  salloc_ (textyv dv <> " for switch") $ \cstore cload -> do
-    ca $ DLA_Var dv
-    cstore
-    let cm1 _vi (vn, (vv, vu, k)) = do
-          l <- freshLabel $ lab <> "_" <> vn
-          block l $
-            case vu of
-              False -> ck k
-              True -> do
-                flip (sallocLet vv) (ck k) $ do
-                  cextractDataOf cload (DLA_Var vv)
-    cload
-    cint 0
-    op "getbyte"
-    cblt lab cm1 $ bltL $ zip [0 ..] (M.toAscList csm)
+  let go cload = do
+        let cm1 _vi (vn, (vv, vu, k)) = do
+              l <- freshLabel $ lab <> "_" <> vn
+              block l $
+                case vu of
+                  False -> ck k
+                  True -> do
+                    flip (sallocLet vv) (ck k) $ do
+                      cextractDataOf cload (DLA_Var vv)
+        cload
+        cint 0
+        op "getbyte"
+        let csml = zip [0 ..] (M.toAscList csm)
+        case csml of
+          [ (0, x), (1, y) ] -> do
+            y_lab <- freshLabel $ lab <> "_" <> "nz"
+            code "bnz" [ y_lab ]
+            cm1 x x
+            label y_lab
+            cm1 y y
+          _ -> cblt lab cm1 $ bltL csml
+  letSmall dv >>= \case
+    True -> go (ca $ DLA_Var dv)
+    False -> do
+      salloc_ (textyv dv <> " for switch") $ \cstore cload -> do
+        ca $ DLA_Var dv
+        cstore
+        go cload
 
 cm :: App () -> DLStmt -> App ()
 cm km = \case

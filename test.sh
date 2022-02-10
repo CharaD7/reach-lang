@@ -123,16 +123,21 @@ cdot () {
   export REACH_DEBUG=Y
   c "$1"
   dot -Tpng -O "$(dirname "$1")/build/$(basename "$1" .rsh).main.appApproval.cost.dot"
-  dot -Tpng -O "$(dirname "$1")/build/$(basename "$1" .rsh).main.state.dot"
+  #dot -Tpng -O "$(dirname "$1")/build/$(basename "$1" .rsh).main.state.dot"
 }
 
 #######
 
-(cd users/algo-govt && ./test.sh)
+c users/asolpshinning.rsh
 exit 0
 
-c --install-pkgs users/xbacked-contracts/src/master_vault.rsh
-REACH_DEBUG=Y c users/xbacked-contracts/src/master_vault.rsh
+#c --install-pkgs users/xbacked-contracts/src/master_vault.rsh
+REACH_DEBUG=Y cdot users/xbacked-contracts/src/master_vault.rsh
+exit 0
+cdot users/duoswap-core/index.rsh
+exit 0
+
+(cd users/algo-govt && ./test.sh)
 exit 0
 
 jb
