@@ -16,6 +16,7 @@ ARGS+=( "--build-arg" "ALPINE_VERSION=${ALPINE_VERSION}" )
 ARGS+=( "--build-arg" "NODE_VERSION=${NODE_VERSION}" )
 ARGS+=( "--build-arg" "NODE_IMAGE=${NODE_IMAGE}" )
 ARGS+=( "--build-arg" "ALPINE_IMAGE=${ALPINE_IMAGE}" )
+ARGS+=( "--build-arg" "GOLANG_IMAGE=${GOLANG_IMAGE}" )
 ARGS+=( "--build-arg" "REACH_VERSION=${VERSION}" )
 ARGS+=( "--build-arg" "Z3_VERSION=${Z3_VERSION}" )
 
