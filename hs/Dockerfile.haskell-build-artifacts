@@ -1,4 +1,5 @@
 ARG SOLC_IMAGE
+ARG ALPINE_IMAGE
 FROM $SOLC_IMAGE AS solc
 RUN apk add make curl bash
 COPY Makefile.docker ./Makefile
@@ -8,14 +9,14 @@ RUN make sol/stdlib.json
 FROM reachsh/devnet-algo:latest AS algo
 
 ARG Z3_VERSION
-FROM alpine as z3
+FROM $ALPINE_IMAGE as z3
 ENV Z3_VERSION=${Z3_VERSION}
 RUN echo 'http://host.docker.internal:30000/' >> /etc/apk/repositories
 RUN apk update --allow-untrusted && apk add libgmpxx ca-certificates git
 RUN apk add --allow-untrusted --repository="http://host.docker.internal:30000/" z3="4.8.13-r0" z3-dev="4.8.13-r0"
 RUN chmod +x /usr/bin/z3
 
-FROM alpine
+FROM $ALPINE_IMAGE
 RUN apk update
 RUN apk add ncurses ncurses-dev libc6-compat zlib-dev gcc g++ git gmp-dev
 RUN ln -s /lib64/ld-linux-x86-64.so.2 /lib/ld-linux-x86-64.so.2
