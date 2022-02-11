@@ -1,10 +1,11 @@
 # Note: this image is not meant to be published
 IMG=reachsh/browser-tests
 CYPRESS_BASE_URL=http://localhost:3000
+ROOT=..
 
 .PHONY: build
 build:
-    $(ROOT)/scripts/build-image.sh $(IMG) Dockerfile \
+	  $(ROOT)/scripts/build-image.sh $(IMG) Dockerfile \
 	  --build-arg CYPRESS_BASE_URL="$(CYPRESS_BASE_URL)"
 
 # Note: this mounts ./cypress so that the recorded video appears in ./cypress/videos/
