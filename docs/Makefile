@@ -5,7 +5,7 @@ include $(ROOT)/DEPS
 build:
 	DOCKER_BUILDKIT=1 docker build \
 	  --build-arg REACHC_HASH="$$(../scripts/git-hash.sh)" \
-	  --build-arg NODE_IMAGE=${NODE_IMAGE} \
+	  --build-arg DOCS_IMAGE=${DOCS_IMAGE} \
 	  -o $$(pwd) \
 	  -f Dockerfile ..
 

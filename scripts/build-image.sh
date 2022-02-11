@@ -12,15 +12,20 @@ ARGS+=( "--build-arg" "REACH_GIT_HASH=$("${HERE}"/git-hash.sh)" )
 . "${HERE}"/../DEPS
 ARGS+=( "--build-arg" "SOLC_VERSION=${SOLC_VERSION}" )
 ARGS+=( "--build-arg" "SOLC_IMAGE=${SOLC_IMAGE}" )
+
 ARGS+=( "--build-arg" "ALPINE_VERSION=${ALPINE_VERSION}" )
 ARGS+=( "--build-arg" "ALPINE_IMAGE=${ALPINE_IMAGE}" )
+
 ARGS+=( "--build-arg" "NODE_VERSION=${NODE_VERSION}" )
 ARGS+=( "--build-arg" "NODE_IMAGE=${NODE_IMAGE}" )
+
 ARGS+=( "--build-arg" "DEBIAN_IMAGE=${DEBIAN_IMAGE}" )
 ARGS+=( "--build-arg" "DEBIAN_NODE_IMAGE=${DEBIAN_NODE_IMAGE}" )
-ARGS+=( "--build-arg" "DOCS_IMAGE=${DOCS_IMAGE}" )
+
 ARGS+=( "--build-arg" "GOLANG_IMAGE=${GOLANG_IMAGE}" )
+
 ARGS+=( "--build-arg" "REACH_VERSION=${VERSION}" )
+
 ARGS+=( "--build-arg" "Z3_VERSION=${Z3_VERSION}" )
 
 LAYERS=$(grep -E 'FROM .* (as|AS)' "${FILE}" | grep -v ignore | awk -F ' (as|AS) ' '{print $2}')
