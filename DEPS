@@ -26,7 +26,7 @@ DEBIAN_VERSION=buster-slim
 DEBIAN_IMAGE=debian:${DEBIAN_VERSION}
 
 #DOCS specific Image Definition
-DOCS_IMAGE_VERSION=node:17-alpine3.13
+DOCS_IMAGE_VERSION=17-alpine3.13
 DOCS_IMAGE=node:${DOCS_IMAGE_VERSION}
 
 #CYPRESS Image definition
