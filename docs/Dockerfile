@@ -1,6 +1,6 @@
-ARG NODE_IMAGE
+ARG DOCS_IMAGE
 
-FROM $NODE_IMAGE as dev
+FROM $DOCS_IMAGE as dev
 WORKDIR /proj
 
 RUN apk add make bash patch
