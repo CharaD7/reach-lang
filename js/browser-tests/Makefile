@@ -4,9 +4,8 @@ CYPRESS_BASE_URL=http://localhost:3000
 
 .PHONY: build
 build:
-	docker build . \
-	  --build-arg CYPRESS_BASE_URL="$(CYPRESS_BASE_URL)" \
-	  --tag "$(IMG)"
+    $(ROOT)/scripts/build-image.sh $(IMG) Dockerfile \
+	  --build-arg CYPRESS_BASE_URL="$(CYPRESS_BASE_URL)"
 
 # Note: this mounts ./cypress so that the recorded video appears in ./cypress/videos/
 # You must have rps-9-web running already, w/ cypress.patch

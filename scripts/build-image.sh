@@ -22,6 +22,9 @@ ARGS+=( "--build-arg" "NODE_IMAGE=${NODE_IMAGE}" )
 ARGS+=( "--build-arg" "DEBIAN_IMAGE=${DEBIAN_IMAGE}" )
 ARGS+=( "--build-arg" "DEBIAN_NODE_IMAGE=${DEBIAN_NODE_IMAGE}" )
 
+ARGS+=( "--build-arg" "CYPRESS_VERSION=${CYPRESS_VERSION}" )
+ARGS+=( "--build-arg" "CYPRESS_IMAGE=${CYPRESS_IMAGE}" )
+
 ARGS+=( "--build-arg" "GOLANG_IMAGE=${GOLANG_IMAGE}" )
 
 ARGS+=( "--build-arg" "REACH_VERSION=${VERSION}" )
