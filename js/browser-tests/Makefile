@@ -1,7 +1,7 @@
 # Note: this image is not meant to be published
 IMG=reachsh/browser-tests
 CYPRESS_BASE_URL=http://localhost:3000
-ROOT=..
+ROOT=../..
 
 .PHONY: build
 build:
