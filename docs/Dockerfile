@@ -1,6 +1,6 @@
 ARG DOCS_IMAGE
-
 FROM $DOCS_IMAGE as dev
+
 WORKDIR /proj
 
 RUN apk add make bash patch
