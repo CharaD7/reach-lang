@@ -1,4 +1,4 @@
-ARG NODE_IMAGE
+ARG DEBIAN_NODE_IMAGE
 ARG DEBIAN_IMAGE
 
 FROM $DEBIAN_IMAGE as build
@@ -18,7 +18,7 @@ COPY patch ./patch
 RUN patch -d ./core/src/spec/ < patch/genesis.patch
 RUN /root/.cargo/bin/cargo build --release
 
-FROM $NODE_IMAGE
+FROM $DEBIAN_NODE_IMAGE
 
 # Some of these are weirdly needed to npm install on m1
 RUN apt-get update; apt-get install curl make python3 libc-dev gcc g++ -y; apt-get clean
